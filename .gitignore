@@ -28,9 +28,12 @@ var/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Results and models
-results/
+# Models
 models/
+
+# Keep visualization results but ignore other results
+results/*
+!results/visualizations/
 
 # OS specific
 .DS_Store
