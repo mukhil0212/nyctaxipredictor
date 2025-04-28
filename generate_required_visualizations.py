@@ -26,7 +26,7 @@ os.makedirs(results_dir, exist_ok=True)
 
 print("Loading data...")
 from src.data.loader import load_taxi_data
-from src.data.cleaner import clean_yellow_taxi_data
+from src.data.cleaner import clean_yellow_taxi_data, clean_green_taxi_data
 from src.data.feature_engineering import engineer_features
 from src.data.feature_selection import (
     select_features_mutual_info, select_features_lasso,
@@ -38,24 +38,41 @@ from src.models.trainer import (
     train_knn_regressor, evaluate_model, get_feature_importance
 )
 
-# Load yellow taxi data for January 2025
-taxi_type = 'yellow'
-months = ['2025-01']
-raw_df = load_taxi_data(taxi_type, months)
+# Function to process a taxi dataset
+def process_taxi_data(taxi_type, months, sample_size=10000):
+    print(f"Processing {taxi_type} taxi data for months: {months}")
 
-# Sample for faster processing
-sample_size = 10000
-if len(raw_df) > sample_size:
-    print(f"Sampling {sample_size} rows from {len(raw_df)} total rows")
-    raw_df = raw_df.sample(n=sample_size, random_state=42)
+    # Load the data
+    raw_df = load_taxi_data(taxi_type, months)
 
-# Clean the data
-print("Cleaning data...")
-clean_df = clean_yellow_taxi_data(raw_df)
+    # Sample for faster processing
+    if len(raw_df) > sample_size:
+        print(f"Sampling {sample_size} rows from {len(raw_df)} total rows")
+        raw_df = raw_df.sample(n=sample_size, random_state=42)
 
-# Engineer features
-print("Engineering features...")
-df = engineer_features(clean_df, taxi_type)
+    # Clean the data
+    print(f"Cleaning {taxi_type} taxi data...")
+    if taxi_type == 'yellow':
+        clean_df = clean_yellow_taxi_data(raw_df)
+    elif taxi_type == 'green':
+        clean_df = clean_green_taxi_data(raw_df)
+    else:
+        raise ValueError(f"Unsupported taxi type: {taxi_type}")
+
+    # Engineer features
+    print(f"Engineering features for {taxi_type} taxi data...")
+    df = engineer_features(clean_df, taxi_type)
+
+    return df
+
+# Process yellow taxi data
+yellow_df = process_taxi_data('yellow', ['2025-01'])
+
+# Process green taxi data
+green_df = process_taxi_data('green', ['2025-01'])
+
+# Use yellow taxi data for the main analysis
+df = yellow_df
 
 # Prepare data for modeling
 print("Preparing data for modeling...")
@@ -375,5 +392,72 @@ plt.tight_layout()
 plt.savefig(os.path.join(results_dir, 'prediction_errors_by_distance.png'), dpi=300, bbox_inches='tight')
 plt.close()
 print("Created prediction errors by distance plot")
+
+# 7. COMPARATIVE ANALYSIS BETWEEN YELLOW AND GREEN TAXIS
+print("Generating comparative visualizations between yellow and green taxis...")
+
+# Compare trip duration distributions
+plt.figure(figsize=(12, 8))
+sns.histplot(yellow_df['trip_duration'], bins=50, kde=True, alpha=0.5, label='Yellow Taxi')
+sns.histplot(green_df['trip_duration'], bins=50, kde=True, alpha=0.5, label='Green Taxi')
+plt.title('Trip Duration Distribution: Yellow vs. Green Taxis', fontsize=16)
+plt.xlabel('Trip Duration (minutes)', fontsize=14)
+plt.ylabel('Frequency', fontsize=14)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'yellow_vs_green_duration.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created yellow vs. green trip duration comparison plot")
+
+# Compare trip distance distributions
+plt.figure(figsize=(12, 8))
+sns.histplot(yellow_df['trip_distance'], bins=50, kde=True, alpha=0.5, label='Yellow Taxi')
+sns.histplot(green_df['trip_distance'], bins=50, kde=True, alpha=0.5, label='Green Taxi')
+plt.title('Trip Distance Distribution: Yellow vs. Green Taxis', fontsize=16)
+plt.xlabel('Trip Distance (miles)', fontsize=14)
+plt.ylabel('Frequency', fontsize=14)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'yellow_vs_green_distance.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created yellow vs. green trip distance comparison plot")
+
+# Compare hourly patterns
+yellow_hourly = yellow_df.groupby('tpep_pickup_datetime_hour')['trip_duration'].count()
+green_hourly = green_df.groupby('lpep_pickup_datetime_hour')['trip_duration'].count()
+
+# Normalize to percentages for fair comparison
+yellow_hourly_pct = yellow_hourly / yellow_hourly.sum() * 100
+green_hourly_pct = green_hourly / green_hourly.sum() * 100
+
+plt.figure(figsize=(12, 8))
+plt.plot(yellow_hourly_pct.index, yellow_hourly_pct.values, 'o-', label='Yellow Taxi')
+plt.plot(green_hourly_pct.index, green_hourly_pct.values, 'o-', label='Green Taxi')
+plt.title('Hourly Trip Distribution: Yellow vs. Green Taxis', fontsize=16)
+plt.xlabel('Hour of Day', fontsize=14)
+plt.ylabel('Percentage of Trips', fontsize=14)
+plt.xticks(range(24))
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'yellow_vs_green_hourly.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created yellow vs. green hourly pattern comparison plot")
+
+# Compare fare distributions
+plt.figure(figsize=(12, 8))
+sns.histplot(yellow_df['fare_amount'], bins=50, kde=True, alpha=0.5, label='Yellow Taxi')
+sns.histplot(green_df['fare_amount'], bins=50, kde=True, alpha=0.5, label='Green Taxi')
+plt.title('Fare Amount Distribution: Yellow vs. Green Taxis', fontsize=16)
+plt.xlabel('Fare Amount ($)', fontsize=14)
+plt.ylabel('Frequency', fontsize=14)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(results_dir, 'yellow_vs_green_fare.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created yellow vs. green fare comparison plot")
 
 print(f"All required visualizations saved to {results_dir}")

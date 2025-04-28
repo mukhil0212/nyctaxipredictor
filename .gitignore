@@ -33,7 +33,6 @@ models/
 
 # Keep visualization results but ignore other results
 results/*
-!results/visualizations/
 !results/required_visualizations/
 
 # OS specific
