@@ -65,11 +65,23 @@ def process_taxi_data(taxi_type, months, sample_size=10000):
 
     return df
 
-# Process yellow taxi data
-yellow_df = process_taxi_data('yellow', ['2025-01'])
+# Process yellow taxi data for January and February
+yellow_jan_df = process_taxi_data('yellow', ['2025-01'])
+yellow_feb_df = process_taxi_data('yellow', ['2025-02'])
 
-# Process green taxi data
-green_df = process_taxi_data('green', ['2025-01'])
+# Process green taxi data for January and February
+green_jan_df = process_taxi_data('green', ['2025-01'])
+green_feb_df = process_taxi_data('green', ['2025-02'])
+
+# Combine January and February data for each taxi type
+yellow_df = pd.concat([yellow_jan_df, yellow_feb_df], ignore_index=True)
+green_df = pd.concat([green_jan_df, green_feb_df], ignore_index=True)
+
+# Add month indicator for analysis
+yellow_jan_df['month'] = 'January'
+yellow_feb_df['month'] = 'February'
+green_jan_df['month'] = 'January'
+green_feb_df['month'] = 'February'
 
 # Use yellow taxi data for the main analysis
 df = yellow_df
@@ -393,8 +405,15 @@ plt.savefig(os.path.join(results_dir, 'prediction_errors_by_distance.png'), dpi=
 plt.close()
 print("Created prediction errors by distance plot")
 
-# 7. COMPARATIVE ANALYSIS BETWEEN YELLOW AND GREEN TAXIS
-print("Generating comparative visualizations between yellow and green taxis...")
+# 7. COMPARATIVE ANALYSIS BETWEEN TAXI TYPES AND MONTHS
+print("Generating comparative visualizations...")
+
+# Create a directory for monthly comparisons
+monthly_dir = os.path.join(results_dir, 'monthly_analysis')
+os.makedirs(monthly_dir, exist_ok=True)
+
+# 7.1 YELLOW VS GREEN TAXI COMPARISON
+print("Comparing yellow vs. green taxis...")
 
 # Compare trip duration distributions
 plt.figure(figsize=(12, 8))
@@ -459,5 +478,133 @@ plt.tight_layout()
 plt.savefig(os.path.join(results_dir, 'yellow_vs_green_fare.png'), dpi=300, bbox_inches='tight')
 plt.close()
 print("Created yellow vs. green fare comparison plot")
+
+# 7.2 MONTHLY COMPARISON FOR YELLOW TAXIS
+print("Comparing January vs. February for yellow taxis...")
+
+# Combine yellow taxi data with month labels for visualization
+yellow_monthly = pd.concat([yellow_jan_df, yellow_feb_df], ignore_index=True)
+
+# Compare trip duration by month for yellow taxis
+plt.figure(figsize=(12, 8))
+sns.boxplot(data=yellow_monthly, x='month', y='trip_duration')
+plt.title('Yellow Taxi: Trip Duration by Month (2025)', fontsize=16)
+plt.xlabel('Month', fontsize=14)
+plt.ylabel('Trip Duration (minutes)', fontsize=14)
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(monthly_dir, 'yellow_monthly_duration.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created yellow taxi monthly trip duration comparison plot")
+
+# Compare trip distance by month for yellow taxis
+plt.figure(figsize=(12, 8))
+sns.boxplot(data=yellow_monthly, x='month', y='trip_distance')
+plt.title('Yellow Taxi: Trip Distance by Month (2025)', fontsize=16)
+plt.xlabel('Month', fontsize=14)
+plt.ylabel('Trip Distance (miles)', fontsize=14)
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(monthly_dir, 'yellow_monthly_distance.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created yellow taxi monthly trip distance comparison plot")
+
+# Compare fare amount by month for yellow taxis
+plt.figure(figsize=(12, 8))
+sns.boxplot(data=yellow_monthly, x='month', y='fare_amount')
+plt.title('Yellow Taxi: Fare Amount by Month (2025)', fontsize=16)
+plt.xlabel('Month', fontsize=14)
+plt.ylabel('Fare Amount ($)', fontsize=14)
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(monthly_dir, 'yellow_monthly_fare.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created yellow taxi monthly fare comparison plot")
+
+# Compare hourly patterns by month for yellow taxis
+yellow_jan_hourly = yellow_jan_df.groupby('tpep_pickup_datetime_hour')['trip_duration'].count()
+yellow_feb_hourly = yellow_feb_df.groupby('tpep_pickup_datetime_hour')['trip_duration'].count()
+
+# Normalize to percentages for fair comparison
+yellow_jan_hourly_pct = yellow_jan_hourly / yellow_jan_hourly.sum() * 100
+yellow_feb_hourly_pct = yellow_feb_hourly / yellow_feb_hourly.sum() * 100
+
+plt.figure(figsize=(12, 8))
+plt.plot(yellow_jan_hourly_pct.index, yellow_jan_hourly_pct.values, 'o-', label='January')
+plt.plot(yellow_feb_hourly_pct.index, yellow_feb_hourly_pct.values, 'o-', label='February')
+plt.title('Yellow Taxi: Hourly Trip Distribution by Month (2025)', fontsize=16)
+plt.xlabel('Hour of Day', fontsize=14)
+plt.ylabel('Percentage of Trips', fontsize=14)
+plt.xticks(range(24))
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(monthly_dir, 'yellow_monthly_hourly.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created yellow taxi monthly hourly pattern comparison plot")
+
+# 7.3 MONTHLY COMPARISON FOR GREEN TAXIS
+print("Comparing January vs. February for green taxis...")
+
+# Combine green taxi data with month labels for visualization
+green_monthly = pd.concat([green_jan_df, green_feb_df], ignore_index=True)
+
+# Compare trip duration by month for green taxis
+plt.figure(figsize=(12, 8))
+sns.boxplot(data=green_monthly, x='month', y='trip_duration')
+plt.title('Green Taxi: Trip Duration by Month (2025)', fontsize=16)
+plt.xlabel('Month', fontsize=14)
+plt.ylabel('Trip Duration (minutes)', fontsize=14)
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(monthly_dir, 'green_monthly_duration.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created green taxi monthly trip duration comparison plot")
+
+# Compare trip distance by month for green taxis
+plt.figure(figsize=(12, 8))
+sns.boxplot(data=green_monthly, x='month', y='trip_distance')
+plt.title('Green Taxi: Trip Distance by Month (2025)', fontsize=16)
+plt.xlabel('Month', fontsize=14)
+plt.ylabel('Trip Distance (miles)', fontsize=14)
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(monthly_dir, 'green_monthly_distance.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created green taxi monthly trip distance comparison plot")
+
+# Compare fare amount by month for green taxis
+plt.figure(figsize=(12, 8))
+sns.boxplot(data=green_monthly, x='month', y='fare_amount')
+plt.title('Green Taxi: Fare Amount by Month (2025)', fontsize=16)
+plt.xlabel('Month', fontsize=14)
+plt.ylabel('Fare Amount ($)', fontsize=14)
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(monthly_dir, 'green_monthly_fare.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created green taxi monthly fare comparison plot")
+
+# Compare hourly patterns by month for green taxis
+green_jan_hourly = green_jan_df.groupby('lpep_pickup_datetime_hour')['trip_duration'].count()
+green_feb_hourly = green_feb_df.groupby('lpep_pickup_datetime_hour')['trip_duration'].count()
+
+# Normalize to percentages for fair comparison
+green_jan_hourly_pct = green_jan_hourly / green_jan_hourly.sum() * 100
+green_feb_hourly_pct = green_feb_hourly / green_feb_hourly.sum() * 100
+
+plt.figure(figsize=(12, 8))
+plt.plot(green_jan_hourly_pct.index, green_jan_hourly_pct.values, 'o-', label='January')
+plt.plot(green_feb_hourly_pct.index, green_feb_hourly_pct.values, 'o-', label='February')
+plt.title('Green Taxi: Hourly Trip Distribution by Month (2025)', fontsize=16)
+plt.xlabel('Hour of Day', fontsize=14)
+plt.ylabel('Percentage of Trips', fontsize=14)
+plt.xticks(range(24))
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(monthly_dir, 'green_monthly_hourly.png'), dpi=300, bbox_inches='tight')
+plt.close()
+print("Created green taxi monthly hourly pattern comparison plot")
 
 print(f"All required visualizations saved to {results_dir}")
